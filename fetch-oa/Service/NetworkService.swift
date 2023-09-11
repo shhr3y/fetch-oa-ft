@@ -7,70 +7,135 @@
 
 import Foundation
 
-let baseUrl = "https://themealdb.com/api/json/v1/1/"
-
 class NetworkService {
     static var shared = NetworkService()
     
-    func fetchMenuItems(byCategory category: MealCategory, completion: @escaping ([MenuItem]?, String?) -> Void) {
-        let categoryUrlString = baseUrl + "filter.php?" + "c=\(category.rawValue)"
+    // MARK: - Init
+    private init() {}
+    
+    // MARK: - Helper Functions
+    
+    /// function to fetch menu items by category.
+    /// - Parameters:
+    ///   - category: MealCategory type
+    ///   - completion: callback handler for response
+    func fetchMenuItems(byCategory category: MealCategory, completion: @escaping (Result<[MenuItem], NetworkServiceError>) -> Void) {
+        // create MealDBRequest based on function parameters.
+        let request = MealDBRequest(endpoint: .filter, queryItems: ["c": category.rawValue])
         
-        guard let categoryUrl = URL(string: categoryUrlString) else {
-            completion(nil, "Error initialising the string as url: \(categoryUrlString)")
+        // create URLRequest from request
+        guard let urlRequest = self.request(from: request) else {
+            completion(.failure(.urlRequestBuildFail))
             return
         }
         
-        let task = URLSession.shared.dataTask(with: categoryUrl, completionHandler: { (data, response, error) in
+        // create URLsession dataTask
+        let task = URLSession.shared.dataTask(with: urlRequest, completionHandler: { (data, response, error) in
+            
+            // Handling any URLSession error
             if let error {
-                completion(nil, "Error while fetching data: \(error.localizedDescription)")
+                completion(.failure(.urlSessionErrorReturned(error: error)))
                 return
             }
             
+            // Handling bad response
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
-                completion(nil, "Error with the response, unexpected status code: \(response.debugDescription)")
+                completion(.failure(.invalidResponseReturned))
                 return
             }
             
+            // Decode response as `MenuItemResponse` response type
             if let data, let items = try? JSONDecoder().decode(MenuItemResponse.self, from: data) {
-                completion(items.meals, nil)
+                // Calls completion handler with decoded data.
+                completion(.success(items.meals))
+                
+                return
             }
+            
+            // Throw error if decoding failed.
+            completion(.failure(.decodingErrorReturned))
         })
         
         task.resume()
     }
     
-    func fetchItemDetails(withItemId id: String, completion: @escaping (MenuItemDetail?, String?) -> Void) {
-        let itemDetailUrlString = baseUrl + "lookup.php?" + "i=\(id)"
+    
+    /// function to fetch item details based on item id.
+    /// - Parameters:
+    ///   - id: id for meal which needs to be fetched
+    ///   - completion: callback handler for response
+    func fetchItemDetails(withItemId id: String, completion: @escaping (Result<MenuItemDetail, NetworkServiceError>) -> Void) {
+        // create MealDBRequest based on function parameters.
+        let request = MealDBRequest(endpoint: .lookup, queryItems: ["i": id])
         
-        guard let itemDetailUrl = URL(string: itemDetailUrlString) else {
-            completion(nil, "Error initialising the string as url: \(itemDetailUrlString)")
+        // create URLRequest from request
+        guard let urlRequest = self.request(from: request) else {
+            completion(.failure(.urlRequestBuildFail))
             return
         }
         
-        let task = URLSession.shared.dataTask(with: itemDetailUrl, completionHandler: { (data, response, error) in
+        // create URLsession dataTask
+        let task = URLSession.shared.dataTask(with: urlRequest, completionHandler: { (data, response, error) in
+            // Handling any URLSession error
             if let error {
-                completion(nil, "Error while fetching data: \(error.localizedDescription)")
+                completion(.failure(.urlSessionErrorReturned(error: error)))
                 return
             }
             
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
-                completion(nil, "Error with the response, unexpected status code: \(response.debugDescription)")
+            // Handling bad response
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                completion(.failure(.invalidResponseReturned))
                 return
             }
             
-            do {
-                if let data {
-                    let item = try JSONDecoder().decode(MenuItemDetailResponse.self, from: data)
-                    completion(item.meals.first, nil)
-                    
-                }
-            } catch {
-                completion(nil, "Error occoured while parsing json object: \(error.localizedDescription)")
+            // Decode response as `MenuItemDetailResponse` response type
+            if let data, let item = try? JSONDecoder().decode(MenuItemDetailResponse.self, from: data), let meal = item.meals.first {
+                // Calls completion handler with decoded data.
+                completion(.success(meal))
+                
+                return
             }
+            
+            // Throw error if decoding failed.
+            completion(.failure(.decodingErrorReturned))
         })
         
+        // Start URLSession dataTask
         task.resume()
+    }
+    
+    /// Function to build URLSession with GET method
+    /// - Parameters
+    ///     - request: MealDBRequest type
+    ///  - Returns
+    ///     - request: URLRequest
+    private func request(from request: MealDBRequest) -> URLRequest? {
+        
+        // Retrieve URL from MealdbRequest
+        guard let url = request.url else {
+            print("Error: Invalid URL")
+            return nil
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        return request
+        
+    }
+}
+
+
+/// Custom errors
+/// - urlRequestBuildFail: Failed to build URLRequest
+/// - urlSessionErrorReturned: Error was returned when building URLSession
+/// - invalidResponseReturned: Bad response returned from API
+extension NetworkService {
+    enum NetworkServiceError: Error {
+        case urlRequestBuildFail
+        case urlSessionErrorReturned(error: Error)
+        case invalidResponseReturned
+        case decodingErrorReturned
     }
 }

@@ -88,23 +88,25 @@ class MainController: UIViewController {
         spinner.startAnimation()
         
         // fetching menu items for dessert from singleton variable NetworkService.
-        NetworkService.shared.fetchMenuItems(byCategory: .dessert) { menuItems, errorMessage in
+        NetworkService.shared.fetchMenuItems(byCategory: .dessert) { result in
             // stopping loading indicator animation once received completion
             self.spinner.stopAnimation()
             
-            // checking for error, if found, print message and return
-            if let errorMessage {
-                print("Error: \(errorMessage)")
+            // checking result status
+            switch result {
+            // if success: sort items and update menu items.
+            case .success(var menuItems):
+                // sorting menu items based on name in ascending order
+                menuItems.sort(by: {$0.name < $1.name})
+                
+                // updating menuItems (class variable)
+                self.menuItems = menuItems
+            
+            // if failure: just print error and return
+            case .failure(let error):
+                print("Error: \(error)")
                 return
             }
-            
-            guard var menuItems else { return }
-            
-            // sorting menu items based on name in ascending order
-            menuItems.sort(by: {$0.name < $1.name})
-            
-            // updateing class variable
-            self.menuItems = menuItems
         }
     }
 }
@@ -151,22 +153,22 @@ extension MainController: UICollectionViewDelegateFlowLayout {
         spinner.startAnimation()
         
         // fetching item for selected item id from singleton variable NetworkService.
-        NetworkService.shared.fetchItemDetails(withItemId: selectedItemId) {[weak self] item, error in
+        NetworkService.shared.fetchItemDetails(withItemId: selectedItemId) {[weak self] result in
             // stopping loading indicator animation once received completion
             self?.spinner.stopAnimation()
             
-            // checking for error, if found, print message and return
-            if let error {
+            // checking result status
+            switch result {
+            // if success: push to ItemDetailViewController into current navigation stack with item.
+            case .success(let item):
+                DispatchQueue.main.async {
+                    self?.navigationController?.pushViewController(ItemDetailViewController(withItem: item), animated: true)
+                }
+                
+            // if failure: just print error and return
+            case .failure(let error):
                 print("Error: \(error)")
                 return
-            }
-            
-            
-            guard let item = item else { return }
-            
-            // push ItemDetailViewController into current navigation stack.
-            DispatchQueue.main.async {
-                self?.navigationController?.pushViewController(ItemDetailViewController(withItem: item), animated: true)
             }
         }
     }
