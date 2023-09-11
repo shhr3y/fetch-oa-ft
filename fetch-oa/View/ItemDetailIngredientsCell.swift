@@ -90,7 +90,7 @@ extension ItemDetailIngredientsCell: UICollectionViewDataSource {
         // assigning key, value to cell.ingredient for specific cell.
         cell.ingredient = [key: self.ingredientsMap[key] as? String ?? ""]
         
-        // updating backgroundColor based on index
+        // updating backgroundColor based on index. if even primary color else secondary color
         cell.backgroundColor = idx%2 == 0 ? Constants.cellPrimaryColor : Constants.cellSecondaryColor
            
         return cell

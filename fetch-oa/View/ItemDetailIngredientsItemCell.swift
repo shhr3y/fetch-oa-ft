@@ -7,6 +7,11 @@
 
 import UIKit
 
+fileprivate class Constants {
+    static let cellHeight: CGFloat = 42
+    static let padding: CGFloat = 12
+}
+
 class ItemDetailIngredientsItemCell: UICollectionViewCell {
     // ingredient of type [String: String] (dictionary). when set, should update UI for the cell.
     var ingredient = [String: String]() {
@@ -59,7 +64,7 @@ class ItemDetailIngredientsItemCell: UICollectionViewCell {
         
         // adding stack to main view with height of 42.
         addSubview(stack)
-        stack.anchor(height: 42)
-        stack.fillSuperview(padding: .init(top: 0, left: 12, bottom: 0, right: 12))
+        stack.anchor(height: Constants.cellHeight)
+        stack.fillSuperview(padding: .init(top: 0, left: Constants.padding, bottom: 0, right: Constants.padding))
     }
 }

@@ -32,7 +32,6 @@ class MenuItemCell: UICollectionViewCell {
     
     
     // MARK: - UI Elements
-    
     /// itemNameLabel used as label for item name.
     private let itemNameLabel: UILabel = {
         let label = UILabel()

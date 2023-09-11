@@ -19,6 +19,9 @@ class LoadingIndicator: UIView {
     
     
     // MARK: - Init
+    
+    /// custom init
+    /// - Parameter superView: type UIView. the view in which the loading indicator is supposed to be added.
     init(superView: UIView) {
         self.superView = superView
         
